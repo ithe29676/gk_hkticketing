@@ -9,7 +9,7 @@ from playwright.sync_api import sync_playwright
 
 URL = "https://hkt.hkticketing.com/hant/#/allEvents/detail?projectId=50000001568003"
 STATUS_KEYWORD = "暫無可售"  # "currently unavailable"
-STATE_FILE = "last_seen_hkt.json"
+STATE_FILE = "last_seen.json"
 
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
