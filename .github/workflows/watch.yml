@@ -1,0 +1,39 @@
+name: HK Ticketing watcher
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+    - cron: "1 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Run check
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python check_once.py
+
+      - name: Save updated state back to repo
+        run: |
+          git config user.name "hkt-watcher-bot"
+          git config user.email "actions@github.com"
+          git add last_seen.json
+          git diff --quiet --cached || git commit -m "update snapshot [skip ci]"
+          git push
