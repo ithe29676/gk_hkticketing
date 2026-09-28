@@ -1,4 +1,3 @@
-
 import os
 import json
 import requests
@@ -8,7 +7,9 @@ from playwright.sync_api import sync_playwright
 # ============ CONFIG ============
 
 URL = "https://hkt.hkticketing.com/hant/#/allEvents/detail?projectId=50000001568003"
-STATUS_KEYWORD = "暫無可售"  # "currently unavailable"
+STATUS_KEYWORD = "暫無可售"   # shown while tickets are NOT available
+MIN_PAGE_LENGTH = 200         # shorter than this = page didn't really load
+MAX_WAIT_SECONDS = 15         # how long to wait for the keyword to appear
 STATE_FILE = "last_seen.json"
 
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -22,8 +23,14 @@ def fetch_rendered_text(url: str) -> str:
         browser = p.chromium.launch()
         page = browser.new_page()
         page.goto(url, wait_until="networkidle", timeout=60000)
-        page.wait_for_timeout(3000)
-        text = page.inner_text("body")
+
+        text = ""
+        for _ in range(MAX_WAIT_SECONDS):
+            text = page.inner_text("body")
+            if STATUS_KEYWORD in text:
+                break  # found it, no need to wait longer
+            page.wait_for_timeout(1000)
+
         browser.close()
         return text
 
@@ -53,9 +60,15 @@ def main():
     last = load_last_state()
 
     full_text = fetch_rendered_text(URL)
-    is_unavailable = STATUS_KEYWORD in full_text
-    current_status = "UNAVAILABLE" if is_unavailable else "AVAILABLE_MAYBE"
+    print("---- page text (first 1500 chars) ----")
+    print(full_text[:1500])
+    print("---- end ----")
 
+    if len(full_text.strip()) < MIN_PAGE_LENGTH:
+        print("Page did not load properly - skipping this check, no change saved.")
+        return
+
+    current_status = "UNAVAILABLE" if STATUS_KEYWORD in full_text else "AVAILABLE_MAYBE"
     print(f"Current status: {current_status}")
 
     if last is None:
