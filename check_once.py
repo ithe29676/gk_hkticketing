@@ -21,14 +21,18 @@ TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 def fetch_rendered_text(url: str) -> str:
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        page = browser.new_page()
+        context = browser.new_context(
+            locale="zh-HK",
+            extra_http_headers={"Accept-Language": "zh-HK,zh-TW;q=0.9,zh;q=0.8"},
+        )
+        page = context.new_page()
         page.goto(url, wait_until="networkidle", timeout=60000)
 
         text = ""
         for _ in range(MAX_WAIT_SECONDS):
             text = page.inner_text("body")
             if STATUS_KEYWORD in text:
-                break  # found it, no need to wait longer
+                break
             page.wait_for_timeout(1000)
 
         browser.close()
