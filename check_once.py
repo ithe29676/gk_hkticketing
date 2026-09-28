@@ -75,23 +75,19 @@ def main():
     current_status = "UNAVAILABLE" if STATUS_KEYWORD in full_text else "AVAILABLE_MAYBE"
     print(f"Current status: {current_status}")
 
-    if last is None:
-        print("First run - saving baseline status. No message sent.")
-        save_state(current_status)
-        return
+    last_status = last["status"] if last else None
 
-    if current_status != last["status"]:
-        print(f"STATUS CHANGED: {last['status']} -> {current_status} - sending Telegram message.")
+    if current_status == "AVAILABLE_MAYBE" and last_status != "AVAILABLE_MAYBE":
+        print("暫無可售 not found - sending Telegram message.")
         message = (
-            f"🎟️ HK Ticketing status changed!\n"
-            f"Was: {last['status']} -> Now: {current_status}\n\n"
-            f"Check tickets now:\n{URL}"
+            f"🎟️ HK Ticketing: 暫無可售 is gone, tickets may be on sale!\n\n"
+            f"Check now:\n{URL}"
         )
         send_telegram_message(message)
-        save_state(current_status)
     else:
-        print("No status change.")
+        print("No new alert.")
 
+    save_state(current_status)
 
 if __name__ == "__main__":
     main()
